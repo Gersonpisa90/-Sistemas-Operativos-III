@@ -1,0 +1,16 @@
+
+| 1.2 Instalación del servidor Linux|
+-------------------------------------
+NAT: la VM usa la conexión de Internet del host, pero no es visible desde la red local
+Bridge: la VM se conecta como si fuera otro dispositivo en la misma red que el host
+Host-only: conexión solo entre la máquina física y la virtual 
+
+Snapshots:
+Son “fotografías” del estado de la máquina virtual. Permiten regresar atrás si algo falla en la configuración o instalación.
+
+Particiones esenciales:
+
+/ → raíz del sistema (obligatoria).
+/home → directorios de usuarios (recomendado).
+swap → espacio de intercambio (memoria virtual).
+/boot → archivos de arranque (kernel y GRUB).

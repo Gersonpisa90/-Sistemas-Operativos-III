@@ -1,0 +1,53 @@
+Script TXT de comandos utilizados 
+
+# Comandos usados practica 1
+
+No se utilizaron comandos en esta práctica, ya que la instalación
+del sistema operativo ParrotOS Home se realizó de manera gráfica.
+
+# Comandos usados practica 2
+
+ip addr
+nmcli device show
+nmtui
+nmcli 
+nmcli con mod “Network1” [connection.id](http://connection.id) Network 
+nmcli con mod Network ipv4.method auto
+nmcli con up Network
+nmcli con down Network
+nmcli con mod ens33 ipv4.addresses 10.0.0.50/24
+nmcli con mod ens33 ipv4.gateway 10.0.0.1
+nmcli con mod ens33 ipv4.dns "8.8.8.8 8.8.4.4 1.1.1.1"
+nmcli con mod ens33 ipv4.method manual
+nmcli con up ens33
+ping -c 4 8.8.8.8
+ping -c 4 google.com
+ping -c 4 10.0.0.1
+
+# Comandos usados practica 3
+
+sudo useradd gerson
+sudo usermod -aG sudo gerson
+sudo groupadd guest
+sudo adduser guestUS
+sudo usermod -aG guest guestUS
+sudo userdel guestUS
+sudo delgroup guest
+cat /etc/passwd | grep guestUS
+cat /etc/group | grep guest 
+
+# Comandos usados practica 4
+
+mkdir materia
+cd materia
+touch estudiantes.txt
+vi estudiante.txt
+cat estudiantes.txt
+chmod 700 estudiante.txt
+chmod 070 estudiante.txt
+mkdir materia2
+cd materia2
+cp /home/gp20241529/materia/estudiante.txt .
+sudo mv /home/gp20241529/materia/materia2 .
+ll
+rm -r materia

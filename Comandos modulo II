@@ -1,0 +1,43 @@
+# Comandos usado en la practica 1
+
+sudo apt update 
+sudo apt upgrade
+cat /etc/apt/sources/list.d/parrot.list #
+apt search bashtop
+git clone https://github.com/aristocratos/bashtop.gits
+cd bashtop
+cd DEB
+sudo ./builtd
+bashtop
+sudo apt purge bashtop
+sudo apt autoremove
+
+# Comandos usados en la practica 2
+
+sudo su
+sudo crontab -e
+0 23 * * * apt update && apt upgrade -y
+0 3 * * 0 reboot
+which at
+ls /tmp 
+sudo apt install at
+echo 'rm -rf /tmp/*' | at now + 1 minute
+atq
+ls /tmp
+
+# Comandos usados en la practica 3
+
+sudo su
+lsblk
+mkfs.ext4 /dev/nvme0n2
+mkdir /home/gp20241529/Desktop/Midisco3
+sudo mount /dev/nvm0n2 /home/gp20241529/Desktop/Midisco3
+cd /Desktop/Midisco3
+touch AdrianAlcantara.txt
+ls
+cd ..
+umount /dev/nvm0n2 /home/gp20241529/Desktop/Midisco3
+lsblk
+sudo mount /dev/nvm0n2 /mnt
+ls /mnt
+

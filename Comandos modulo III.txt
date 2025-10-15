@@ -1,0 +1,48 @@
+===================
+Practica 1         |
+===================
+ls
+sudo nano /etc/default/grub
+GRUB_TIMEOUT=20
+sudo update-grub
+ro quiet splash init=/bin/bash
+nano /etc/shadow
+passwd gp20241529
+reboot -f
+===================
+Practica 2        |
+===================
+ls
+cat
+ip a
+nano backup.sh
+chmod +x backup.sh
+date +"%d-%m-%Y_%H-%M-%S" 
+tar -czvf 
+./backup.sh
+nano consulta.sh
+echo
+ifconfig
+ifconfig > [nombre_del_fichero.txt]
+chmod +x consulta.sh
+mv [nombre_del_fichero.txt] /home/$USER/Desktop
+./consulta.sh
+
+===================
+Practica 3        |
+===================
+ping 10.0.0.7
+ping 192.168.10.2
+ls
+ip a
+systemctl status ssh
+ssh gp20241529@192.168.10.2
+uname -a
+cat
+ssh-keygen.exe
+ssh -p ~/.ssh
+echo "{Clave publica}" ~/.shh/authorized_keys
+chmod 600 ~/.shh/authorized_keys
+chmod 700 ~/.ssh
+ssh gp20241529@192.168.10.2
+

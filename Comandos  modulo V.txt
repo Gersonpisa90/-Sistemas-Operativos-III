@@ -1,0 +1,180 @@
+#################### Practica 1: Syncronizacion de carpetas con Rsync ####################
+
+sudo apt update
+sudo apt install rsync openssh-server -y
+sudo systemctl status ssh
+sudo systemctl start ssh
+sudo systemctl enable ssh
+
+# Crear una carpeta en su servidor primario y dentro crear 100 archivos (con el comando touch)
+
+vi CreateFiles.sh
+#!/bin/bash
+i=0
+while [ $i -le 100 ]
+do
+  touch "Archivo$i{i}.txt"
+  ((i++))
+done
+chmod +x CreateFiles.sh 
+
+# Utilizando rsync, copiar el contenido de la carpeta a el servidor remoto
+
+rsync -azv -e ssh /root/Practica1 node2@node2:/home/node2/Documents
+
+# Crear un script con el comando de sincronizacion de la carpeta y luego crear un crontab para que  se sincronizen cada 1 minuto. 
+# cree un archivo en el server primario y luego compruebe que el crontab esta funcionando validando en el servidor secundario si la carpeta se creo
+
+crontab -e 
+* * * * * rsync -azv -e ssh /root/Practica1 node2@node2:/home/node2/Documentos
+date 
+mkdir
+
+#################### Practica 2: Instalacion y configuracion del Cluster ####################
+
+sudo apt update && sudo apt upgrade -y
+sudo apt install pacemaker corosync psc -y
+sudo systemctl enable pacemaker corosync
+sudo systemctl start pacemaker corosync
+sudo systemctl status pacemaker corosync
+pacemakerd --version
+corosync -v
+
+cat /etc/corosync/corosync.conf
+
+totem {
+    version: 2
+    secauth: off
+    cluster_name: my_cluster
+    crypto_cipher: none
+    crypto_hash: none
+}
+
+logging {
+    fileline: off
+    to_stderr: yes
+    to_logfile: yes
+    logfile: /var/log/corosync/corosync.log
+    to_syslog: yes
+    debug: off
+    logger_subsys {
+        subsys: QUORUM
+        debug: off
+    }
+}
+
+quorum {
+    provider: corosync_votequorum
+    two_node: 1
+}
+
+nodelist {
+    node {
+        name: node1
+        nodeid: 1
+        ring0_addr: 10.0.0.50
+    }
+    node {
+        name: node2
+        nodeid: 2
+        ring0_addr: 10.0.0.51
+    }
+}
+
+# Copiar la conf en el segundo server
+scp /etc/corosync/corosync.conf root@node2:/etc/corosync/
+
+# Reiniciar los servicios en ambos servidores
+systemctl restart corosync.service
+systemctl restart pacemaker.service
+
+# Desactivar STONITH para entorno de prácticas
+pcs property set stonith-enabled=false
+
+# Todo el comando en una linea
+pcs resource create VirtualIP ocf:heartbeat:IPaddr2 ip=10.0.0.205 cidr_netmask=24 op monitor interval=10s
+
+
+#Verificar conf
+pcs status
+ping 10.0.0.205 # linux
+ping 10.0.0.205 -t # en windows 
+
+# simulacion de caida de un nodo
+# Parar el servicio
+systemctl stop corosync.service pacemaker.service
+# Reiniciar la maquina
+reboot -f
+
+
+#################### Practica 3: Cluster de Alta Disponibilidad HTTP ####################
+
+# Configura 2 servidores web (apache/NGINX). En cada uno desplieque una pagina html que especifique que servidor es (server1, Server2)
+# Implementar HA en los servidores utilizando  KeepAlived. Validar  la Alta Disponibilidad del servicio apagando uno de los servidores y y accediendo al servicio de apache a traves de un navegador.
+
+sudo apt update && apt upgrade
+sudo apt install keepalived apache2 -y
+
+# Server 1
+
+sudo su
+cd /var/www/
+ls 
+cd html # Borrar lo que haya en el directorio y crear el archivo index.html
+echo "Server 1" > index.html
+cat index.html
+curl 10.0.0.50
+
+vi /etc/keepalived/keepalived.conf
+
+# Configuracion NODE 1
+vrrp_instance VI_1 {
+	state MASTER
+	interface ens33 # Tu interfaz de red
+	virtual_router_id 55
+	priority 150
+	advert_int 1
+	unicast_src_ip 10.0.0.50 # La ip del NODE1
+	unicast_peer {
+		10.0.0.51 # La ip del NODE2
+	 }
+authentication {
+	auth_type PASS
+	auth_pass 12345678 # la password tiene que tener mas de 8 caracteres
+	}
+virtual_ipaddress {
+	10.0.0.210/24
+ }
+}
+
+# Server 2
+
+sudo su
+cd /var/www/
+ls 
+cd html # Borrar lo que haya en el directorio y crear el archivo index.html
+echo "Server 1" > index.html
+cat index.html
+curl 10.0.0.51
+
+vi /etc/keepalived/keepalived.conf
+# Configuracion del NODE2
+
+vrrp_instance VI_1 {
+	state BACKUP
+	interface ens33 # Tu interfaz de red
+	virtual_router_id 55
+	priority 100
+	advert_int 1
+	unicast_src_ip 10.0.0.51 # La ip del NODE2
+	unicast_peer {
+		10.0.0.50 # La ip del NODE3
+	 }
+authentication {
+	auth_type PASS
+	auth_pass 12345678 # la password tiene que tener mas de 8 caracteres
+	}
+virtual_ipaddress {
+	10.0.0.210/24
+ }
+}

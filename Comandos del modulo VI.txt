@@ -1,0 +1,112 @@
+##################################
+####### Practica 1 Cifrado #######
+##################################
+
+# Actualizar la lista de paquetes
+sudo apt update
+
+# Instalar la suite GnuPG (incluye gpg2)
+sudo apt install gnupg2
+
+# Verifificar la instalacion
+gpg2 --versio3
+
+# Cifrar archivo
+gpg2 -c documento.txt
+
+# Mostrar el contenido descifrado en la terminal:
+gpg2 -d documento.txt.gpg
+
+Guardar el archivo descifrado en un nuevo archivo
+gpg2 -o documento_descifrado.txt -d documento.txt.gpg
+
+#######################################################
+##### Practica 2 - IP tables - UFW/Firewall-cmd  ######
+#######################################################
+
+# Habilitar los servicios al arranque
+sudo systemctl enable apache2   # o nginx
+sudo systemctl enable vsftpd
+sudo systemctl enable ssh
+
+# Iniciar los servicios
+sudo systemctl start apache2    # o nginx
+sudo systemctl start vsftpd
+sudo systemctl start ssh  
+
+
+# Bloquear HTTP,FTP,SSH (puertos 80,22,21)
+sudo iptables -A INPUT -p tcp --dport 80 -j DROP
+sudo iptables -A INPUT -p tcp --dport 21 -j DROP
+sudo iptables -A INPUT -p tcp --dport 22 -j DROP
+
+ Alternativamente, permitir explícitamente el tráfico
+sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 21 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# Verificar reglas activas
+sudo iptables -L -v -n
+
+# Mostrar reglas con número de línea
+sudo iptables -L INPUT --line-numbers
+
+# Eliminar reglas (ajusta los números según tu salida)
+sudo iptables -D INPUT 1
+sudo iptables -D INPUT 1
+sudo iptables -D INPUT 1
+
+# Guardar reglas
+sudo netfilter-persistent save
+
+ Eliminar todas las reglas de todas las cadenas (-F, --flush)
+sudo iptables -F
+
+# Eliminar todas las cadenas no vacías creadas por el usuario (-X, --delete-chain)
+sudo iptables -X
+
+# Establecer la política por defecto a ACCEPT en todas las cadenas
+sudo iptables -P INPUT ACCEPT
+sudo iptables -P FORWARD ACCEPT
+sudo iptables -P OUTPUT ACCEPT
+
+#############################################################################################
+###### Practica 4: Configurar 2FA con google authenticator Modulo PAM para Acceso SSH #######
+#############################################################################################
+#Nota: Cada usuario que se quiera conectar por 2FA es necesario que tenga el: google-authenticator 
+# Sin esto el usuario no va a funcionar NUNCA 
+
+sudo apt update
+# Instalar
+sudo apt install libpam-google-authenticator
+
+# Entrar al usuario deseado y ejecutar google-authenticator
+# texto = y,y,n,y
+su - gp20241529
+google-authenticator
+
+
+# Verifica permisos
+ls -l ~/.google_authenticator
+chmod 600 ~/.google_authenticator
+# Si el archivo no existe o está en otro usuario (por ejemplo, en root), la autenticación fallará.
+
+Entrar a este archivo para configurar configuración SSH del servidor
+vi /etc/ssh/sshd_config.d/2FA.conf
+	ChallengeResponseAuthentication yes
+	UsePAM yes
+	PasswordAuthentication no
+
+# Entrar al Archivo: /etc/pam.d/sshd para configurar el modulo PAM
+
+# Opción A – Requiere Contraseña + OTP 
+@include common-auth
+auth required pam_google_authenticator.so
+
+Opción B – Solo OTP (sin contraseña)
+#@include common-auth
+auth required pam_google_authenticator.so
+
+# Probar
+ssh gp20241529@10.0.0.50
+

@@ -1,0 +1,180 @@
+####################################################################
+# Practica 1: compartir archivos entre linux utilizando NFS (1pts) #
+####################################################################
+Server → 10.0.0.55
+Client → 10.0.0.50
+
+# server NFS
+sudo apt update
+sudo apt install -y nfs-kernel-server
+
+#Creamos la carpeta
+sudo mkdir /srv/compartido_nfs
+sudo chown nobody:nogroup /srv/compartido_nfs
+sudo chmod 777 /srv/compartido_nfs
+# Creamos los archivos
+cd /srv/compartido_nfs 
+touch Adrian{1..100}.txt
+
+# Configurar el archivo "Export" para compartir el directorio
+sudo vi /etc/exports
+/srv/compartido_nfs    10.0.0.50(rw,sync,no_subtree_check) # la ip del Cliente NFS
+
+# Aplicar cambios y reiniciar el servicio
+sudo exportfs -a
+sudo systemctl restart nfs-kernel-server
+
+Paso 2: Configuración del Cliente NFS
+sudo apt update
+sudo apt install nfs-common
+
+# Creacion del punto de montaje local
+sudo mkdir /mnt/nfs_remoto # Creamos la carpeta para el punto de montaje
+sudo mount 10.0.0.55:/srv/compartido_nfs /mnt/nfs_remoto # Creamos el punto de montaje local
+df -h # Para ver el punto de montaje
+
+#Ver los 100 archivos 
+ls /mnt/nfs_remoto/
+
+# Montaje permanente
+vi /etc/fstab
+10.0.0.55:/srv/compartido_nfs    /mnt/nfs_remoto    nfs    defaults,noatime    0 0
+
+##############################################################################
+# Practica 2: Creacion de fileserver compatible con Windows utilizando SAMBA #
+##############################################################################
+
+# Instala Samba y herramientas auxiliares:
+sudo apt update
+sudo apt install samba samba-common
+sudo systemctl start smbd
+sudo systemctl enable smbd
+
+# Crear Carpeta Compartida, Usuarios, Grupos y dar permisos
+sudo groupadd samba
+sudo useradd -m eva -s /bin/bash 
+sudo passwd eva
+sudo usermod -aG samba eva # Agregamos al usuario al samba
+
+# Creamos la carpeta a compartir
+mkdir /srv/samba
+chown nobody:samba /srv/samba
+chmod 2770 /srv/samba
+
+# Creamos los archivos
+cd /srv/samba
+touch Adrian{1..100}.txt
+
+# Configuracion del archivo /etc/samba/smb.conf
+vi /etc/samba/smb.conf
+[SambaShare]
+   path = /srv/samba
+   browseable = yes
+   writable = yes
+   valid users = @samba
+   force group = samba
+   create mask = 0660
+   directory mask = 2770
+   read only = no
+   
+testparm # para probar si el archivo esta bien escrito
+
+# Agregarmos el usuario a smbd 
+smbpasswd -a eva # para añadir un usuario al backend de samba 
+admin123!
+smbpasswd -e eva # para habilitar un usuario en smbd
+systemctl restart smbd
+
+# en la maquina windows 
+Windows + R 
+\\10.0.0.240
+# Entrar a la carpeta con la passwd del usuario creado y agregardo en samba
+# Editamos un archivo y comprobamos en el server los cambios
+######################################################################
+# Practica 3: Creacion de controlador de Dominio con cliente Windows #
+######################################################################
+# 1. Instalación de Paquetes Necesarios
+sudo apt update
+sudo apt upgrade -y
+sudo apt install -y samba samba-dsdb-modules samba-vfs-modules krb5-user krb5-config krb5-kdc krb5-admin-server dnsutils winbind chrony
+
+sudo vi /etc/hosts
+10.0.0.25   dc.so3.inet    dc
+# Cambiar hostname
+nmtui 
+vi /etc/hostname # Otra forma de cambiar el hostname
+# Configuración Kerberos (krb5.conf)
+sudo vi /etc/krb5.conf
+
+[libdefaults]
+        default_realm = SO3.INET
+        dns_lookup_realm = false
+        dns_lookup_kdc = true
+
+[realms]
+SO3.INET = {
+        kdc = dc.so3.inet
+        admin_server = dc.so3.inet
+}
+
+[domain_realm]
+        .so3.inet = SO3.INET
+        so3.inet = SO3.INET
+		
+# Preparar el Entorno 
+sudo systemctl stop samba nmbd winbind
+sudo systemctl disable samba nmbd winbind
+sudo mv /etc/samba/smb.conf /etc/samba/smb.conf.old
+
+sudo samba-tool domain provision --use-rfc2307 --interactive
+Realm	SO3.INET
+Domain	SO3 
+Server Role	dc
+DNS backend	SAMBA_INTERNAL
+DNS Forwarder	8.8.8.8
+Administrator password	admin123!
+
+# Activar Servicios de Samba AD DC
+sudo systemctl unmask samba-ad-dc.service
+sudo systemctl enable samba-ad-dc.service
+sudo systemctl start samba-ad-dc.service
+sudo systemctl status samba-ad-dc.service
+
+# Crear Usuario en linux (OPCIONAL)
+# NOTA: Un usuario local y un usuario de AD NO están relacionados.
+sudo useradd lanegracubana
+sudo passwd lanegracubana
+
+# Crear el usuario en AD
+sudo samba-tool user create lanegracubana gp@20241529
+
+# Pruebas DNS y Kerberos
+dig @127.0.0.1 os3.inet # Verifica que el DNS del dominio Samba responde correctamente
+kinit Administrator@OS3.INET # Sirve para comprobar que el servicio Kerberos del AD Samba está funcionando correctamente.
+klist # Permite verificar que el kinit funcionó correctamente.
+
+# Configuracion Windows
+
+# Configurar DNS
+windows + R 
+- Ir a ncpa.cpl
+- Propiedades de Ethernet → IPv4
+- Usar:
+    - DNS Preferido: 10.0.0.25
+    - Alternativo: (vacío)
+# Verificar
+nslookup so3.inet # en una cmd de windows
+
+# Unir Windows al Dominio
+
+- **sysdm.cpl → Cambiar nombre de equipo**
+- Seleccionar **Dominio**
+- Ingresar: so3.inet
+- Credenciales:
+    - Usuario: Administrator
+    - Password: admin123!
+	Reiniciar
+# Iniciar Sesión con Usuario del Dominio
+En pantalla de login: Otro usuario
+Usuario: lanegracubana
+Contraseña: gp@20241529

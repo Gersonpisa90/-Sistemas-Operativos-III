@@ -1,0 +1,142 @@
+###############################################################################################################
+############################## Practica 1:  Instalacion y configuracion de Docker #############################
+###############################################################################################################
+
+# 1. Instalar Docker en mi servidor
+apt install docker
+
+# 2. Descargar una Imagen de NGINX web server (desde la Dockerhub)
+docker pull nginx
+
+# 3. Crear un contenedor a partir la la imagen de NGINX en a que el puerto 8888 del host sera redireccionado al puerto 80 del contenedor de NGINX, de igual forma montar un volumen persistente /home/website --> /usr/share/nginx/html/
+docker run -d -p 8888:80 --name Website -v /home/gp20241529/website:/usr/share/nginx/html nginx
+
+# 4. Crear una pagina HTML sencilla la cual tenga su nombre y matricula y nombrarla como index.html, una vez creada copiarla al la ruta del volumen persistente para que la misma puedea ser visualizada por el contenedor (/home/website)
+cd /home/gp20241529/website
+vi index.html
+
+<!DOCTYPE html>
+<head>
+	<title>Mi pagina web</title>
+</head>
+<body>
+	<h1>Gerson Perez</h1>
+	<h1>Matricula: 20241529</h1>
+</body>
+
+
+# 5. Ingrese al navegador (127.0.0.1:8888) y muestre la pagina que ha creado
+curl -I 127.0.0.1:8888
+
+#######################################################################################################
+############################# Practica 2: Instalacion de Portainer (1Pts) #############################
+#######################################################################################################
+
+Descargar desde la Dockerhub una imagen de portainer intructivo de instalacion 
+
+docker volume create portainer_data
+docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:lts
+docker ps  # se deberia ver el "portainer/portainer-ce:lts"
+https://localhost:9443 
+
+Primer inicio de sesión:
+- La primera vez que accedas, se te pedirá que crees una cuenta de administrador.
+- Ingresa un nombre de usuario (ej. admin) y una contraseña.
+- Haz clic en "Create user".
+
+Conectar Portainer a tu entorno Docker
+- En la siguiente pantalla, selecciona "Local" (gestionará la instancia de Docker en la misma máquina donde está instalado Portainer).
+- Haz clic en "Connect".
+
+Serás dirigido al Dashboard de Portainer.
+
+A. Descargar una Imagen (Pull)
+
+1. En el menú lateral izquierdo, ve a Images.
+2. En la parte superior, introduce httpd en el campo Name.
+3. Haz clic en el botón Pull the image (Descargar la imagen).
+4. Verás que la imagen httpd:latest aparece en tu lista de imágenes después de unos momentos.
+
+B. Ejecutar un Contenedor (Run) y Mapear Puertos/Volúmenes
+
+1. En el menú lateral izquierdo, ve a **Containers** (Contenedores).
+2. Haz clic en + Add container (Añadir contenedor).
+3. Name (Nombre): mi_servidor_web_gui
+4. Image (Imagen): httpd
+5. Manual network port publishing (Publicación manual de puertos de red):
+    - Haz clic en + publish a new network port.
+    - Host port (Puerto del Host): `8081` (usamos 8081 para no chocar con el anterior ejemplo de terminal).
+    - Container port: 80
+    
+6.Volumes:
+    - Asegúrate de tener un directorio local creado: sudo mkdir -p /ruta/a/tu/sitio_web
+    - Haz clic en + map additional volume.
+    - Container: /usr/local/apache2/htdocs/
+    - Host: /var/www/html/
+    - Selecciona Bind en el menú desplegable.
+7. Haz clic en el botón Deploy the container al final de la página.
+
+
+###############################################################################################################################################
+############################# Practica 3: Despliegue de contenedor de Wordpress utilizando Docker-Compose #####################################
+###############################################################################################################################################
+
+# 1. Realize el proceso de instalacion de Docker-compose
+apt install docker-compose
+
+# 2. Creen un archivo llamado docker-compose.yml donde se especifiquen las Variables de entorno que usaran los contenedores asi como un contenedor para la BD y uno para el aplicativo de wordpress
+mkdir docker-compose
+cd !$
+# Creamos el archivo docker-compose.yml
+vi docker-compose.yml
+
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:latest
+    container_name: wordpress_db
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: admin123! # ¡Cambia esto por una contraseña segura!
+      MYSQL_DATABASE: wordpress_db
+      MYSQL_USER: wordpress_user
+      MYSQL_PASSWORD: admin123! # ¡Cambia esto por una contraseña segura!
+    networks:
+      - wpsite
+
+  wordpress:
+    depends_on:
+      - db
+    image: wordpress:latest
+    container_name: wordpress_app
+    ports:
+      - "8000:80" # Puedes cambiar el puerto 8000 por otro si está en uso
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: wordpress_db
+      WORDPRESS_DB_USER: wordpress_user
+      WORDPRESS_DB_PASSWORD: admin123! # ¡Debe coincidir con la de la base de datos!
+    volumes:
+      - ./wp-content:/var/www/html/wp-content # Mapea la carpeta wp-content localmente
+    networks:
+      - wpsite
+
+networks:
+  wpsite:
+
+volumes:
+  db_data:
+
+# 3. Realize el despliegue de los contenedores utilizando docker compose
+docker-compose up -d
+
+# 4. Una vez finalizado el despliegue ingrese mediante el navegador y configure wordpress para su correcto uso
+En tu navegador abre: http://localhost:8000/
+
+Verás la pantalla inicial de instalación de WordPress.
+
+Configura el nombre del sitio, usuario administrador y contraseña, despues logeate

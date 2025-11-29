@@ -1,0 +1,239 @@
+##########################################################################################
+######################################  Practica 1  ######################################
+##########################################################################################
+
+# Instalacion
+sudo apt update && sudo apt upgrade -y
+sudo apt install curl gnupg2 apt-transport-https -y
+curl -o webmin-setup-repo.sh https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repo.sh
+sudo sh webmin-setup-repo.sh
+apt-get install --install-recommends webmin usermin
+
+# Configurando la conexión
+systemctl start webmin
+systemctl status webmin
+# Tambien debemos permitir el trafico por el puerto 10000 que por donde pasa esta aplicacion
+sudo ufw allow 10000/tcp
+sudo ufw reload
+
+ENTRAR AL NEVEGADOR http://[ip-maquina]:(10000)
+
+
+##########################################################################################
+######################################  Practica 2  ######################################
+##########################################################################################
+
+# Practica 2 Desplieque de una VM con terraform en digital Ocean(1Pts)
+
+# Dependecias
+sudo apt update && sudo apt upgrade -y
+sudo apt install software-properties-common gnupg gnupg2 curl -y #dependecias necesarias
+
+#  Instalacion 
+wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com bookworm main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo sed -i '/lory/d' /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install terraform
+# Pero se instala una version desactualizada Terraform v1.5.6
+apt policy terraform
+apt install terraform=1.14.0-1
+
+# Configurando SSH
+ssh-keygen -t rsa -b 4096
+cat ~/.ssh/id_rsa.pub
+ufw disable
+nos dirigimos a Digital Ocean. > SETTINGS > SECURITY > ADD SSH KEY  # Luego de que ya hemos puesto la llave, le damos a copiar (A LOS 2 CUADRITOS) y guardamos.
+
+
+------- archivo "main.tf" ------------- 
+
+mkdir terraform 
+cd ~/terraform 
+sudo nano main.tf 
+
+terraform {
+  required_providers {
+    digitalocean = {
+      source  = "digitalocean/digitalocean"
+      version = ">= 1.0.0"
+    }
+  }
+}
+
+provider "digitalocean" {
+  token = "TU TOKEN DE DIGITAL OCEAN" # Token
+}
+
+resource "digitalocean_droplet" "os3vm" {
+  image  = "ubuntu-22-04-x64"
+  name   = "OS3vm"
+  region = "nyc1"
+  size   = "s-1vcpu-1gb"
+
+  ssh_keys = ["LLAVE PUBLICACA DE LA MAQUINA"] # Llave publica
+}
+
+output "droplet_ip" {
+  value = digitalocean_droplet.os3vm.ipv4_address # Mostramos la ip publica de la maquina
+}
+
+### GENERAR el token ###
+VOLVEMOS A DIGITAL OCEAN Y BUSCAMOS DONDE DICE "API" 
+GENERAR UN NUEVO TOKEN 
+LE PONES EL NOMBRE Y LE DAS FULL ACCESS 
+COPIAMOS EL TOKEN QUE TE GENERE, LO COPIAS Y LO LLEVAS A LA MAQUINA VM HASTA DONDE DICE "TU API TOKEN DE DIGITAL OCEAN".
+CERRAMOS Y GUARDAMOS. 
+
+### INICIAR TERRAFORM: ###
+terraform init 
+terraform plan 
+terraform apply 
+Y PONEMOS QUE YES 
+Y ESPERAMOS..
+
+Entrar por ssh a la maquina 
+
+
+##########################################################################################
+######################################  Practica 3  ######################################
+##########################################################################################
+
+# Instalación de Ansible
+apt install ansible ansible-core python3-argcomplete python3-jmespath python3-kerberos python3-libcloud python3-lockfile python3-ntlm-auth python3-requests-ntlm python3-resolvelib python3-selinux python3-winrm python3-xmltodict
+
+# tenemos que crear los archivos de configuración de ansible
+mkdir -p /etc/ansible
+vi /etc/ansible/ansible.cgf # ponemos cualquier cosa comentado
+touch /etc/ansible/hosts # Creamos el archivo hosts
+
+# Configuracion de ssh en la Maquina Ansible-controler
+
+ssh-keygen -t rsa -b 4096 # enter, enter
+cat ~/.ssh/id_rsa.pub # copiamos la llave publica
+
+Nos dirigimos a Digital Ocean. > SETTINGS > SECURITY > ADD SSH KEY
+Agregamos la nuestra public key
+Y cuando estemos creando la maquina en DigialOcean elegimos nuestra llave: Choose your SSH keys
+La creamos y accedemos desde ssh
+
+
+### Configuración de la maquina linux ###
+
+# Creamos el usuario de ansible
+useradd -m ansible -s /bin/bash # cramos el usuario 
+usermod -aG sudo ansible # agregamos el usuario ansible al grupo sudo
+passwd ansible1
+id ansible # para confirmar
+
+# Ahora vamos a entrar y a configurar el acceso remoto con llave publica
+su ansible1 # passwod
+mkdir -p /home/ansible1/.ssh
+vi /home/ansible1/.ssh/authorized_keys # aqui copiamos la llave publica del ansible-controler
+
+Y PROBAMOS SI FUNCUINA...
+
+##### Configuración de Windows #####
+
+Set-ExecutionPolicy RemoteSigned -Force 
+Enable-PSRemoting -Force 
+Set-Item WSMan:/localhost/Service/Auth/Basic -Value $true
+Set-Item WSMan:/localhost/Service/AllowUnencrypted -Value $true
+Restart-Service WinRM
+Install-Module -Name PSWindowsUpdate -Force
+New-NetFirewallRule -Name "WinRM HTTP" -Protocol TCP -LocalPort 5985 -Action Allow <== TE PEDIRA UN NOMBRE Y PONDRAS: WinRM-HTTPS
+New-LocalUser -Name "ansible1" -Password (ConvertTo-SecureString "password" -AsPlainText -Force) -FullName "ansible" -Description "Usuario Ansible" 
+Add-LocalGroupMember -Group "Administrator" -Member "ansible"
+winrm create winrm/config/Listener?Address=*+Transport=HTTP
+winrm enumerate winrm/config/listener 
+
+
+#### Configuración del ansible-controler ####
+
+Editamos el archivo de /etc/ansible/hosts 
+
+[win]
+165.227.83.34
+
+[win]
+10.0.0.42
+
+[win:vars]
+ansible_user=ansible1
+ansible_password=password
+ansible_port=5985
+ansible_connection=winrm
+ansible_winrm_transport=basic
+ansible_winrm_secure_cert_validation=ignore
+ansible_shell_type=powershell
+[linux]
+OS3vm ansible_host=142.93.200.236  ansible_user=ansible
+
+# Creamos el entorno virtual
+cd ~/ansible
+python3 -m venv ansible
+pip install pywinrm
+
+# Hacemos ping
+ansible win -i /etc/ansible/hosts -m win_ping
+
+ansible linux -i /etc/ansible/hosts -m ping
+
+
+##########################################################################################
+######################################  Practica 4  ######################################
+##########################################################################################
+
+# Utilizando el modulo win_copy utilize un comando ad-hoc que copie un archivo txt ubicado en el escritorio de la maquina ansible2 a la carpeta de documentos
+
+# Instalamos ansible y hacemos el entorno virtual ya echos en la practica anterior
+VAMOS A LA PC DE WINDOWS: Archivos > Esta PC > Local Disk > Users > ansible1 > Desktop > Y UNA VEZ AHI, CREAR UN ARCHIVO DE TXT 
+ansible win -m win_copy -a "src=C:/Users/ansible1/Desktop/ARCHIVO.TXT dest=C:/User/ansible1/Documents/ remote_src=yes"
+
+# El usuario (ansible) debe tener contrasena para esto
+ansible linux -m reboot --become -K
+
+##########################################################################################
+######################################  Practica 5  ######################################
+##########################################################################################
+
+# En el directorio ansible crear un area de trabajo (Ya creada en las practicas anteriores)
+
+vi playbook_instalar_notepad.yml
+#####################################################
+---
+- name: Instalacion de Notepad++ en maquinas Windows
+  hosts: win
+  gather_facts: false
+  tasks:
+    - name: Instalar Notepad++ usando Chocolatey
+      win_chocolatey:
+        name: notepadplusplus.install
+        state: present
+#####################################################
+
+# Ejecucion
+ansible-playbook -i /etc/ansible/hosts playbook_instalar_notepad.yml
+
+
+
+
+vi playbook_instalar_NGINX_iniciar.yml
+#####################################################
+--- 
+- name: Instalar y asegurar que Nginx este corriendo
+  hosts: linux
+  become: true
+  tasks: 
+    - name: ensure nginx is at the latest version (multi-distro compatible)
+      ansible.builtin.package: 
+        name: nginx 
+        state: latest
+
+    - name: "start nginx"
+      ansible.builtin.service: 
+        name: nginx
+        state: started
+        enabled: true
+#####################################################
+
+ansible-playbook -i /etc/ansible/hosts playbook_instalar_NGINX_iniciar.yml

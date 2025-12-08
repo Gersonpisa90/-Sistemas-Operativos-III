@@ -1,15 +1,14 @@
-Script TXT de comandos utilizados 
-
-# Comandos usados practica 1
-
-No se utilizaron comandos en esta práctica, ya que la instalación
-del sistema operativo ParrotOS Home se realizó de manera gráfica.
-
-# Comandos usados practica 2
-
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Practica 2: Configuración de parametros de red.                                                                                                                  |
+| Configure los parametros de red utilizando DHCP e IP estatica a traves de la terminal (explique TODAS las formas que sus sistema operativo permite configurarlo) |
+| Configure los DNS de google 8.8.8.8 - 8.8.4.4 en su sistema                                                                                                      |
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ip addr
-nmcli device show
-nmtui
+nmtui # Esta herramienta es mas facil para hacer esta configuracion por que es grafica
+nmcli # Esta herraminta es mas "complicada" por que es todo por linea de comandos
+
+--------------------------------- Usando nmcli ----------------------------------------
+nmcli device show # Esto mustra informacion del la interfaz
 nmcli 
 nmcli con mod “Network1” [connection.id](http://connection.id) Network 
 nmcli con mod Network ipv4.method auto
@@ -23,25 +22,44 @@ nmcli con up ens33
 ping -c 4 8.8.8.8
 ping -c 4 google.com
 ping -c 4 10.0.0.1
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# Comandos usados practica 3
 
-sudo useradd gerson
-sudo usermod -aG sudo gerson
-sudo groupadd guest
-sudo adduser guestUS
-sudo usermod -aG guest guestUS
-sudo userdel guestUS
-sudo delgroup guest
-cat /etc/passwd | grep guestUS
-cat /etc/group | grep guest 
+---------------------------------------------------------------------------------------------------------------
+Practica 3: Gestion de Usuario y grupos                                                                        |
+Cree un usuario con su nombre y agreguelo al grupo "sudoers" para que tenga permisos de administracion         |
+Cree un grupo llamado guest, cree un usuario y agrequelo al grupo creado anteriormente                         |
+Elimine el usuario y el crupo previamente creado                                                               |                          
+---------------------------------------------------------------------------------------------------------------
+NOTA: EN ESTA PRACTICA USO OTROS NOMBRES DE USUARIOS Y GRUPOS 
+------- Creacion de ususarios en Linux ---------------
+sudo useradd gerson # Creacion del usuario
+sudo adduser leslie # Para la creación de un usuario de forma interactica
 
-# Comandos usados practica 4
+sudo usermod -aG sudo gerson # Asignacion del usuario al grupo de los sudoers
+sudo groupadd medicina # Creación de un grupo
+sudo usermod -aG medicina leslie # Asignadon a lislie al grupo medicina 
+sudo userdel leslie
+sudo delgroup medicina
+---------- En estos directorios podemos ver los ususarios y los grupos ---------------------
+cat /etc/passwd | grep leslie
+cat /etc/group | grep medicina
+---------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+Practica 4: Gestion de Permisos de archivos                                                                                                             |
+Cree una carpeta llamada materia, dentro cree un archivo llamado estudiante.txt y editelo utilizando "vi" , agregue su nombre y Matricula               |
+Modifique los permisos para que solo el usuario propietario del archivo pueda tener control total                                                       |
+Modifique los permisos para que solo el el grupo propietario del archivo pueda tener control total                                                      |
+Cree una nueva carpeta llamada materia2 y cree una copia del archivo estudiante.txt dentro de ella                                                      |
+Elimine la carpeta materia junto con el archivo estudiante.txt                                                                                          |
+--------------------------------------------------------------------------------------------------------------------------------------------------------
 
 mkdir materia
 cd materia
 touch estudiantes.txt
 vi estudiante.txt
+Gerson Pérez - 20241529
 cat estudiantes.txt
 chmod 700 estudiante.txt
 chmod 070 estudiante.txt

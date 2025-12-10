@@ -1,7 +1,10 @@
 ===================
 Practica 1         |
 ===================
-
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Configure el menu de Grub para que el tiempo de esperaen el que muestra el menu sea de 20 Segundos (Mostrar el resultado)
+Muestre algun metodo de recuperacion si se me ha olvidado la contrasena del usuario root
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 sudo nano /etc/default/grub
 GRUB_TIMEOUT=20
 sudo update-grub
@@ -19,36 +22,76 @@ reboot -f # Forzamos el reinicio
 ===================
 Practica 2        |
 ===================
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------#Crear un script que haga un backup creando un comprimido utilizando TAR de la carpeta /home/(tu_usuario). el nombre del archivo debe de tener la fecha y la hora #actual en formato dd-mm-yyyy:hh:mm
+#Crear un script que copie el resultado del comando ifconfig en un archivo en el escritorio. El script debe de preguntar cual nombre desea ponerle al archivo y #crear el archivo con el nombre provisto
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-nano backup.sh 
+----------------------------------- PRIMER SCRIP --------------------------------------------------
+
+vi backup.sh 
+########################### SCRIP ######################
+#!/bin/bash
+fecha=$(date +"%d-%m-%Y_%H_%S")
+nombre_archivo=/home/$USER/backup_${fecha}.tar.gz
+archivo_comprimir=/home/$USER
+tar -czvf "$nombre_archivo" "$archivo_comprimir"
+#########################################################
 chmod +x backup.sh
-date +"%d-%m-%Y_%H-%M-%S" 
-tar -czvf 
 ./backup.sh
-nano consulta.sh
-echo
-ifconfig
-ifconfig > [nombre_del_fichero.txt]
+
+----------------------------------- SEGUNDO SCRIP --------------------------------------------------
+
+vi consulta.sh
+########################### SCRIP ######################
+#!/bin/bash
+echo "Escribe el nombre del archivo: "
+read nombre
+ifconfig > $nombre.txt
+mv $nombre.txt /home/$USER/Desktop/
+#########################################################
+cd /home/[USUARIO]/Desktop
 chmod +x consulta.sh
-mv [nombre_del_fichero.txt] /home/$USER/Desktop
 ./consulta.sh
 
 ===================
 Practica 3        |
 ===================
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Configure su VM server en modo Bridge y valide que desde su maquina host de windows pueda alcanzarla via ping
+habilite el servicio de ssh y pruebde conectandose desde su maquina host utilizando su usuario y contrasena
+En su maquina Host (windows) genere un par de llaves (publica-privada) especifique el destino donde se guardaran las llaves y en la parte de paraphase, dejarlo en blanco.
+copie la llave publica generada al servidor 
+realize la prueba intentando conectarse via ssh nuevamente desde la maquina host (windows) hasta la VM linux, si la practica fue realizada de forma correcta, debe de entrar de forma automatica sin solicitar credenciales
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# APAGAMOS LA MAQUINA Y VAMOS A LA CONFIGURACION Y LA PONEMOS EN MODO Bridge Y LA VOLVEMOS A ENCENDER
+# AHORA VAMOS A VER LA IP CON EL COMNDO ip address y hacemos ping entre maquinas
 ping 10.0.0.7
 ping 192.168.10.2
-ls
-ip a
+-------------------------------------------------------- INSTALACION DE OPENSSH-SERVER ----------------------------------------------------------------------------
+# si no nos deja es por un problema de dependencias, en mi caso la dependencia que me esta dando problemas es openssh-client.Me dice que esta dependecia esta en la version 1:10.0p-5~bpo12+2 pero necesito la 1:9.2p1-2+deb12u7.asi que vamos a hacer un downgrede a este paquete. Este problema lo causa el repositorio de Backports asi que lo puedes coomentar: vi /etc/apt/source.list.d/parrot.list
+
+sudo apt install openssh-server # ERROR COMENTADO ARRIBA
+sudo apt install openssh-client=1:9.2p1-2deb12u7 # SOLUCION AL ERROR
+sudo apt install openssh-server
+systemctl start ssh
+systemctl enable ssh
 systemctl status ssh
-ssh gp20241529@192.168.10.2
-uname -a
-cat
-ssh-keygen.exe
-ssh -p ~/.ssh
-echo "{Clave publica}" ~/.shh/authorized_keys
+# AHORA VAMOS A NUESTRO DIRECTORIO Y CREAMOS ESTA CARPTA mkdir -p ~/.ssh
+mkdir -p ~/.ssh
+cd .ssh
+touch authorized_keys
 chmod 600 ~/.shh/authorized_keys
 chmod 700 ~/.ssh
-ssh gp20241529@192.168.10.2
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+MAQUINA WINDOWS
+ssh-keygen.exe # GENERAMOS LAS LLAVES
+# Para copiar nuestra llave publica en el server vamos a usar este comando OJO ES UNA PLANTILLA
+# HACER ESTO EN LA POWERSHELL
+cat ~/.ssh/[NOMBRE_DE_NUESTRA_LLAVE_PUBLICA] | ssh [NOMBRE_DE_USUARIO_REMOTO]@[IP_DEL_SERVER] "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+ejemplo: cat ~/.ssh/id_rsa.pub | ssh usuario@192.168.1.10 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+
+# Luego de esto nos conectamos para verificar
+ssh usuario@192.168.1.10
 
 

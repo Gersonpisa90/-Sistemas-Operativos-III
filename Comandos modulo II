@@ -1,8 +1,7 @@
 # Comandos usado en la practica 1
 
-sudo apt update 
-sudo apt upgrade
-cat /etc/apt/sources/list.d/parrot.list #
+sudo apt update && sudo apt upgrade
+cat /etc/apt/sources/list.d/parrot.list # Aqui se pueden ver los links de los repos
 apt search bashtop
 git clone https://github.com/aristocratos/bashtop.gits
 cd bashtop

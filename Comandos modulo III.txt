@@ -1,21 +1,26 @@
 ===================
 Practica 1         |
 ===================
-ls
+
 sudo nano /etc/default/grub
 GRUB_TIMEOUT=20
 sudo update-grub
-ro quiet splash init=/bin/bash
-nano /etc/shadow
-passwd gp20241529
-reboot -f
+##################################################################################################################################################################################################
+# AHORA REINICIOAMOS LA MAQUINA. Y CUANDO ESTEMOS EN EL MENU DEL GRUB LE DAMOS A LA "e" PARA ENTRAR A "setparams".Cuando estemos aqui, bajamos hasta la linea de LINUX y borramos todo lo que esta # por detras de la letra "r" y ponemos: 
+###################################################################################################################################################################################################
+rw quiet splash init=/bin/bash
+vi /etc/shadow 
+###################################################################################################################################################################
+Una vez dentro, buscaremos la linea donde se encuentra el usuario al que queremos resetear la contraseña, en este caso el usuario debian y borraremos las letras, numero y caracteres que se encuentran entre los puntos dobles :Una vez dentro, buscaremos la linea donde se encuentra el usuario al que queremos resetear la contraseña, en este caso el usuario debian y borraremos las letras, numero y caracteres que se encuentran entre los puntos dobles :
+###################################################################################################################################################################
+passwd [USUARIO] # Ahora Actualizamos la password del usuario que le queremos cambiar la password
+reboot -f # Forzamos el reinicio
+
 ===================
 Practica 2        |
 ===================
-ls
-cat
-ip a
-nano backup.sh
+
+nano backup.sh 
 chmod +x backup.sh
 date +"%d-%m-%Y_%H-%M-%S" 
 tar -czvf 
@@ -45,4 +50,5 @@ echo "{Clave publica}" ~/.shh/authorized_keys
 chmod 600 ~/.shh/authorized_keys
 chmod 700 ~/.ssh
 ssh gp20241529@192.168.10.2
+
 

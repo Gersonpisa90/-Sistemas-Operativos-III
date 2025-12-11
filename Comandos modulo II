@@ -40,3 +40,21 @@ lsblk
 sudo mount /dev/nvm0n2 /mnt
 ls /mnt
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+alert top any any -> $HOME_NET any (msg:"ICMP Ping detected"; sid:100041)
+alert top any any -> $HOME_NET 21 (msg:"Traffic to port 21 detected"; sid:10002)
+alert top any any -> $HOME_NET 22 (msg:"Traffic to port 22 detected"; sid:10003)
+alert top any any -> $HOME_NET 80 (msg:"Traffic to port 80 detected"; sid:10004)
+

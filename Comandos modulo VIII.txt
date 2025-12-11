@@ -6,7 +6,7 @@
 apt install docker
 
 # 2. Descargar una Imagen de NGINX web server (desde la Dockerhub)
-docker pull nginx
+docker pull docker.io/nginx
 
 # 3. Crear un contenedor a partir la la imagen de NGINX en a que el puerto 8888 del host sera redireccionado al puerto 80 del contenedor de NGINX, de igual forma montar un volumen persistente /home/website --> /usr/share/nginx/html/
 docker run -d -p 8888:80 --name Website -v /home/gp20241529/website:/usr/share/nginx/html nginx
@@ -139,4 +139,29 @@ En tu navegador abre: http://localhost:8000/
 
 Verás la pantalla inicial de instalación de WordPress.
 
+
+
+
+
 Configura el nombre del sitio, usuario administrador y contraseña, despues logeate
+
+
+
+
+
+
+
+
+
+
+
+
+
+docker run
+docker stop
+docker ps
+docker ps -a
+
+
+
+

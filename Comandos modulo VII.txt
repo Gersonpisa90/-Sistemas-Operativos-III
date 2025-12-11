@@ -37,12 +37,21 @@ df -h # Para ver el punto de montaje
 ls /mnt/nfs_remoto/
 
 # Montaje permanente
-vi /etc/fstab
+sudo vi /etc/fstab
 10.0.0.55:/srv/compartido_nfs    /mnt/nfs_remoto    nfs    defaults,noatime    0 0
+
+# PARA VERIFCAR QUE ESTO FUNCIONA APAGA LA MAQUINA CLIENTE Y DESPUES REVISA SI SIGUE MOTADA LA CARPETA compartido_nfs
+df -h # Para ver el punto de montaje
 
 ##############################################################################
 # Practica 2: Creacion de fileserver compatible con Windows utilizando SAMBA #
 ##############################################################################
+
+# Instala Samba y herramientas auxiliares:
+echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free-firmware" | sudo tee /etc/apt/sources.list.d/bookworm-backports.list
+sudo apt update
+sudo apt install samba -t bookworm-backports
+
 
 # Instala Samba y herramientas auxiliares:
 sudo apt update
@@ -57,16 +66,16 @@ sudo passwd eva
 sudo usermod -aG samba eva # Agregamos al usuario al samba
 
 # Creamos la carpeta a compartir
-mkdir /srv/samba
-chown nobody:samba /srv/samba
-chmod 2770 /srv/samba
+sudo mkdir /srv/samba
+sudo chown nobody:samba /srv/samba
+sudo chmod 2770 /srv/samba
 
 # Creamos los archivos
 cd /srv/samba
 touch Adrian{1..100}.txt
 
 # Configuracion del archivo /etc/samba/smb.conf
-vi /etc/samba/smb.conf
+sudo vi /etc/samba/smb.conf
 [SambaShare]
    path = /srv/samba
    browseable = yes
@@ -80,10 +89,10 @@ vi /etc/samba/smb.conf
 testparm # para probar si el archivo esta bien escrito
 
 # Agregarmos el usuario a smbd 
-smbpasswd -a eva # para añadir un usuario al backend de samba 
+sudo smbpasswd -a eva # para añadir un usuario al backend de samba 
 admin123!
-smbpasswd -e eva # para habilitar un usuario en smbd
-systemctl restart smbd
+sudo smbpasswd -e eva # para habilitar un usuario en smbd
+sudo systemctl restart smbd
 
 # en la maquina windows 
 Windows + R 
@@ -96,7 +105,8 @@ Windows + R
 # 1. Instalación de Paquetes Necesarios
 sudo apt update
 sudo apt upgrade -y
-sudo apt install -y samba samba-dsdb-modules samba-vfs-modules krb5-user krb5-config krb5-kdc krb5-admin-server dnsutils winbind chrony
+sudo apt install aptitude
+sudo aptitude install samba krb5-user winbind smbclient dnsutils
 
 sudo vi /etc/hosts
 10.0.0.25   dc.so3.inet    dc
@@ -177,4 +187,5 @@ nslookup so3.inet # en una cmd de windows
 # Iniciar Sesión con Usuario del Dominio
 En pantalla de login: Otro usuario
 Usuario: lanegracubana
+
 Contraseña: gp@20241529

@@ -1,72 +1,128 @@
 ===================
 Practica 1         |
 ===================
-# 1. Verificar el contenido del directorio web
-cd /var/www/
-ls
-ll
-cd html
 
-# 2. Crear y editar el archivo principal del sitio
-nano index.html
-cat index.html
+--------------------------------------------------- INSTALACION DE APACHE2 ---------------------------------------------------------------------------------------
+# Primer instalamos APACHE2
+sudo apt install apache2
 
-# 3. Verificar y habilitar el servicio Apache
-systemctl status apache2
-systemctl start apache2
-systemctl status apache2
+# 3. habilitar el servicio Apache y Verificar
+sudos systemctl start apache2
+sudo systemctl enable apache2
+sudo systemctl status apache2
 
-# 4. Probar el servicio localmente
+Probar en el navegador
 curl -I http://localhost
-curl http://localhost
+Entrar al navegador y probar
 
-# 5. Crear archivo de configuración para el sitio
-nano /etc/apache2/sites-available/html.local.conf
+------------------------------------------------- Crear un sitio web personalizado (VirtualHost) -----------------------------------------------------------------
 
-# 6. Verificar sintaxis de configuración
-apache2ctl configtest
+# Creación de los Archivos y Directorios HTML
+sudo mkdir -p /var/www/sitio1.local/html
+sudo mkdir -p /var/www/sitio2.local/html
 
-# 7. Habilitar el sitio y recargar Apache
-a2ensite html.local.conf
-systemctl reload apache2
-apache2ctl configtest
+# Sitio 1: "Hola Mundo" (Puerto 80)
+sudo vi /var/www/sitio1.local/html/index.html     # Crea el archivo index.html para el primer sitio y creamos el HTML
+-------------------------- CODIGO HTML --------------------------
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hola Mundo</title>
+</head>
+<body>
+    <h1>Hola Mundo</h1>
+</body>
+</html>
+------------------------------------------------------------------
+# Sitio 2: Información Personal (Puerto 8080)
+sudo vi /var/www/sitio2.local/html/index.html
 
-# 8. Agregar dominio al archivo hosts
-nano /etc/hosts
+-------------------------- CODIGO HTML --------------------------
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mi Informacion</title>
+</head>
+<body>
+    <h1>[Tu Nombre Completo]</h1>
+    <p>Matrícula: [Tu Matrícula]</p>
+    <p>Materia: [Nombre de la Materia]</p>
+</body>
+</html>
+------------------------------------------------------------------
 
-# 9. Comprobar resolución y acceso
-ping html.local
-curl -I http://html.local
-curl http://html.local
+#Configurar Apache para Escuchar en el Puerto 8080
+#Por defecto, Apache escucha en el puerto 80. Entonces vamos a configurarlo para que también escuche en el puerto 8080. Para ello vamos a editar el archivo de #configuración de puertos de Apache:
 
-# 10. Crear nuevo sitio adicional
-mkdir /var/www/practica1.com
-cd /var/www/practica1.com
-nano index.html
-cat index.html
-cd ..
+sudo vi /etc/apache2/ports.conf # Añade la línea Listen 8080 después de Listen 80:
 
-# 11. Crear configuración del nuevo sitio
-nano /etc/apache2/sites-available/practica1.com.conf
+# ... (otras líneas)
+Listen 80
+Listen 8080
+# ... (otras líneas)
 
-# 12. Verificar puertos de Apache
-nano /etc/apache2/ports.conf
+# Crear Archivos de Configuración de Hosts Virtuales
+Ahora vamos a crear los archivos de configuración separados para cada host virtual en /etc/apache2/sites-available/
 
-# 13. Habilitar sitio y deshabilitar el default
-a2dissite 000-default.conf
-a2ensite practica1.com.conf
-a2query -s
+# Configuración Sitio 1 (Puerto 80):
+# Crea sitio1.local.conf
 
-# 14. Recargar Apache
-systemctl reload apache2
+sudo vi /etc/apache2/sites-available/sitio1.local.conf
 
-# 15. Agregar dominio al hosts y probar
-nano /etc/hosts
-ping practica1.com
-curl -I http://practica1.com
-curl http://practica1.com
-curl http://practica1.com:8080
-  
+-------------------------- VirtualHost1 --------------------------
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName sitio1.local
+    DocumentRoot /var/www/sitio1.local/html
+    ErrorLog ${APACHE_LOG_DIR}/sitio1.local-error.log
+    CustomLog ${APACHE_LOG_DIR}/sitio1.local-access.log combined
+</VirtualHost>
+-------------------------------------------------------------------
+
+# Configuración Sitio 2 (Puerto 8080):
+# Crea sitio2.local.conf:
+
+sudo vi /etc/apache2/sites-available/sitio2.local.conf
+
+-------------------------- VirtualHost2 --------------------------
+<VirtualHost *:8080>
+    ServerAdmin webmaster@localhost
+    ServerName sitio2.local
+    DocumentRoot /var/www/sitio2.local/html
+    ErrorLog ${APACHE_LOG_DIR}/sitio2.local-error.log
+    CustomLog ${APACHE_LOG_DIR}/sitio2.local-access.log combined
+</VirtualHost>
+-------------------------------------------------------------------
+
+# Habilitar Sitios y Reiniciar Apache
+Herramientas de línea de comandos de Apache para habilitar los nuevos sitios y luego reinicia el servicio para aplicar los cambios.
+
+sudo a2ensite sitio1.local.conf
+sudo a2ensite sitio2.local.conf
+sudo a2dissite 000-default.conf
+sudo systemctl restart apache2 
+
+# si aqui aparece este error:
+"Job for apache2.service failed.
+See "systemctl status apache2.service" and "journalctl -xeu apache2.service" for details."
+
+ejecutar lo siguiente:
+# Este comando verificar la sintaxis de todos los archivos de configuración de Apache y si hay un error esta herramienta te lo va a decir
+sudo apache2ctl configtest
+
+
+a2queey -s # Aqui vas a ver los sitios que estan activos 
+EJEMPLO:
+000-default (enabled by site administrator) # Quitar este sitio
+sitio1.local (enabled by site administrator)
+sitio2.local (enabled by site administrator)
+
+# Para quitarlo ponemos esto: 
+sudo a2dissite 000-default.conf
+
+# Despues hacer de hacer todo, tirar el siguiente comando para extableser la conf: 
+sudo systemctl reload apache2
+
 ===================
 Practica 2        |
 ===================
@@ -76,14 +132,16 @@ sudo apt update
 sudo apt install postfix mailutils libsasl2-modules sasl2-bin rsyslog -y
 
 # 2. Verificar servicios
-systemctl status postfix
+systemctl start postfix
 systemctl enable --now rsyslog
 systemctl status rsyslog
 
 # 3. Editar configuración principal
-nano /etc/postfix/main.cf
+vi /etc/postfix/main.cf
 
-# dentro de main.cf
+# dentro de main.cf, Puedes poner esto al final del archivo no pasa nada 
+# NOTA: En este archivo ya existe la palabra "relayhost", asi que comentala o quitala para que no de problemas mas tarde
+
 relayhost = [smtp.gmail.com]:587
 smtp_sasl_auth_enable = yes
 smtp_sasl_security_options = noanonymous
@@ -92,7 +150,7 @@ smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
 smtp_use_tls = yes
 
 # 4. Crear archivo con credenciales
-nano /etc/postfix/sasl_passwd
+vi /etc/postfix/sasl_passwd
 [smtp.gmail.com]:587 gersonjavierperezreyes16@gmail.com:CONTRASEÑA_DE_APLICACION
 
 # 5. Aplicar permisos y mapear archivo
@@ -101,6 +159,8 @@ sudo chmod 600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
 
 # 6. Reiniciar y probar Postfix
 sudo systemctl restart postfix
+
+# Abrimos otra pestaña y ponemos esto. Para monitorear el servicio de postfix
 tail -f /var/log/syslog
 
 # 7. Enviar correo de prueba
@@ -114,21 +174,54 @@ Practica 3        |
 sudo apt install cups cups-pdf -y
 
 # 2. Iniciar y verificar el servicio
-systemctl start cups
-systemctl status cups
+sudo systemctl start cups
+sudo systemctl status cups
 
-# 3. Editar configuración de CUPS
-nano /etc/cups/cupsd.conf
+# 3. Editar configuración de CUPS. Aqui Tenemos que ir configurando por lineas
+
+sudo vi /etc/cups/cupsd.conf
+-------------------------------------------------- MODIFICACION DE DOUMENTO --------------------------------------------------------------------------------------
+# Only listen for connections from the local machine. # BUSCAR ESTA LINEA EN EL DOCUMENTO
+Port 631 # AQUI TENEMOS QUE QUITAR ESTO "Listen localhost:631" Y PONER ESTO: Port 631
+Listen /run/cups/cups.sock
+
+# Restrict access to the server... # BUSCAR ESTA LINEA EN EL DOCUMENTO
+<Location />
+  Order allow,deny
+  Allow all # Agregar esta linea
+</Location>
+
+# Restrict access to the admin pages... # BUSCAR ESTA LINEA EN EL DOCUMENTO
+<Location /admin>
+  Order allow,deny
+  Allow all # Agregar esta linea
+</Location>
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # 4. Reiniciar servicio
-systemctl restart cups
+sudo systemctl restart cups
 
 # 5. Agregar usuario al grupo lpadmin
-usermod -aG lpadmin root
+sudo usermod -aG lpadmin root
 
 # 6. Verificar pertenencia al grupo
 cat /etc/group | grep lpadmin
 
 # 7. Permitir acceso al puerto de impresión
-ufw allow 631
-ufw allow 631/tcp
+sudo ufw allow 631
+sudo ufw allow 631/tcp
+sudo ufw disable
+----------------------------------------------------------------- Entrando a la web ------------------------------------------------------------------------------
+# Abrimos un navegador y ponemos la ip del server y el puerto. Ejmplo: 10.0.0.55:631 y asi veras la web
+
+Ahora le damos a ADMINISTRATION > ADD PRINTER > PONEMOS LOS DATOS QUE SE PIDEN > LOCAL PRINTERS: CUPS-BRF (Virtual Braille BRF Printer) > NAME: VT_PRINTER > SHARING: YES > CONTINUAR > MAKE: Generic > CONTUNUE > MODEL: Genric CUPS-PDF Priter (no options) (en) > ADD PRINTER
+
+# ECHO ESTO YA TENEMOS UNA IMPRESORA AÑADIDA, AHORA PARA VERLA TENEMOS QUE IR A: PRINTERS
+# LE DAMOS UN CLICK AL NOMBRE DE LA IMPRESORA CREADA PARA ENTRAR Y PODER VER SUS DETALLES. AHORA NOS COPIAMOS LA URL DE ESTA PAGINA: 
+
+http://10.0.0.55:631/printers/VT_PRINTER # CUIDADO CON EL https que te puede dar problemas es http
+
+Vamos a la pestaña de buscar en windows y escribimos lo siguiente: Printers and scanners > add a printer or scanner > The printer that i want isn't listed > Selec a shared printer by name: https://10.0.0.55:631/printers/VT_PRINTER > NEXT > Genric: Generic/Text Only > NEXT > FINISH
+
+# Y YA LA AGREGAMOS Y AHORA VAMOS A WORD Y IMPRIMIMOS UNA PAGINA CUALQUIERA XD
+# Para ver el PDF impreso tenemos que ir a jobs y lo veremos :)

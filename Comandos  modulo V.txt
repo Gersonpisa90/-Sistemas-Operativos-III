@@ -1,50 +1,55 @@
+##########################################################################################
 #################### Practica 1: Syncronizacion de carpetas con Rsync ####################
+##########################################################################################
 
 sudo apt update
-sudo apt install rsync openssh-server -y
-sudo systemctl status ssh
+sudo apt install rsync openssh-server -y # hacer un downgrade al paquete openssh-client
 sudo systemctl start ssh
 sudo systemctl enable ssh
+sudo systemctl status ssh
 
-# Crear una carpeta en su servidor primario y dentro crear 100 archivos (con el comando touch)
 
-vi CreateFiles.sh
-#!/bin/bash
-i=0
-while [ $i -le 100 ]
-do
-  touch "Archivo$i{i}.txt"
-  ((i++))
-done
-chmod +x CreateFiles.sh 
+------------------------------ Crear una carpeta en su servidor primario y dentro crear 100 archivos (con el comando touch) --------------------------------------
 
-# Utilizando rsync, copiar el contenido de la carpeta a el servidor remoto
+touch hola{1..100}.txt       # Con este comando se crean 100 archivos 
 
-rsync -azv -e ssh /root/Practica1 node2@node2:/home/node2/Documents
+------------------------------------------------- Utilizando rsync, copiar el contenido de la carpeta a el servidor remoto ---------------------------------------
+
+rsync -azv -e ssh /root/Practica1 node2@[IP_SERVER_DESTINO]:/home/node2/Documents
 
 # Crear un script con el comando de sincronizacion de la carpeta y luego crear un crontab para que  se sincronizen cada 1 minuto. 
 # cree un archivo en el server primario y luego compruebe que el crontab esta funcionando validando en el servidor secundario si la carpeta se creo
 
+# PARA HACER ESTO TENEMOS QUE PONER LA LLAVE PUBLICA, PARA ELLO CREAMOS LA LLAVE
+ssh-keygen -t rsa
+ssh-copy-id usuario@[IP_SERVER_DESTINO]
+ssh usuario@[IP_SERVER_DESTINO] # DEBERIA ENTRAR SIN PASSWORD
 crontab -e 
 * * * * * rsync -azv -e ssh /root/Practica1 node2@node2:/home/node2/Documentos
-date 
-mkdir
 
+#############################################################################################
 #################### Practica 2: Instalacion y configuracion del Cluster ####################
+#############################################################################################
 
+#  HACER ESTO EN LOS 2 SERVERS
 sudo apt update && sudo apt upgrade -y
-sudo apt install pacemaker corosync psc -y
-sudo systemctl enable pacemaker corosync
-sudo systemctl start pacemaker corosync
-sudo systemctl status pacemaker corosync
-pacemakerd --version
-corosync -v
+sudo apt install pacemaker corosync pcs -y
+sudo systemctl enable pacemaker corosync && sudo systemctl start pacemaker corosync && sudo systemctl status pacemaker corosync
+sudo pacemakerd --version
+sudo corosync -v
 
-cat /etc/corosync/corosync.conf
+# CAMBIAMOS EL HOSTNAME DE LAS MAQUINAS node1 y node2 
+sudo nmtui                 # YO UTILIZO ESTA HERRAMIENTO POR QUE ME SIENTO COMODO, PERO EXISTEN MUCHAS FORMAS DE COMBIAR EL HOSTNAME
+sudo vi /etc/hosts         # AQUI AGREGAMOS EL HOSTNAME DE LA MAQUINA EN ESTE CASO node1 y node2(ya para el otro server)
+EJEMPLO:
+10.0.0.55 node1
+10.0.0.56 node2
+
+vi /etc/corosync/corosync.conf # ARCHIVO DE CONFIGURACION
 
 totem {
     version: 2
-    secauth: off
+    secauth: off       # AGREAGAMOS ESTA LINEA
     cluster_name: my_cluster
     crypto_cipher: none
     crypto_hash: none
@@ -65,34 +70,33 @@ logging {
 
 quorum {
     provider: corosync_votequorum
-    two_node: 1
+    two_node: 1      # AGREAGAMOS ESTA LINEA
 }
-
+# AGREGAMOS ESTO:
 nodelist {
     node {
         name: node1
-        nodeid: 1
-        ring0_addr: 10.0.0.50
+        nodeid: 1 
+        ring0_addr: 10.0.0.50 # IP DEL PRIMER NODE 
     }
     node {
         name: node2
         nodeid: 2
-        ring0_addr: 10.0.0.51
+        ring0_addr: 10.0.0.51 # IP DEL SEGUNDO NODE
     }
 }
 
 # Copiar la conf en el segundo server
-scp /etc/corosync/corosync.conf root@node2:/etc/corosync/
+scp /etc/corosync/corosync.conf root@node2:/etc/corosync/ # SI NO FUNCIONA HACERLO MANUAL
 
 # Reiniciar los servicios en ambos servidores
-systemctl restart corosync.service
-systemctl restart pacemaker.service
+sudo systemctl restart corosync.service && sudo systemctl restart pacemaker.service
 
 # Desactivar STONITH para entorno de prácticas
-pcs property set stonith-enabled=false
+sudo pcs property set stonith-enabled=false
 
 # Todo el comando en una linea
-pcs resource create VirtualIP ocf:heartbeat:IPaddr2 ip=10.0.0.205 cidr_netmask=24 op monitor interval=10s
+sudo pcs resource create VirtualIP ocf:heartbeat:IPaddr2 ip=10.0.0.205 cidr_netmask=24 op monitor interval=10s
 
 
 #Verificar conf
@@ -106,16 +110,15 @@ systemctl stop corosync.service pacemaker.service
 # Reiniciar la maquina
 reboot -f
 
-
+#########################################################################################
 #################### Practica 3: Cluster de Alta Disponibilidad HTTP ####################
-
+#########################################################################################
 # Configura 2 servidores web (apache/NGINX). En cada uno desplieque una pagina html que especifique que servidor es (server1, Server2)
 # Implementar HA en los servidores utilizando  KeepAlived. Validar  la Alta Disponibilidad del servicio apagando uno de los servidores y y accediendo al servicio de apache a traves de un navegador.
 
-sudo apt update && apt upgrade
-sudo apt install keepalived apache2 -y
+sudo apt update && sudo apt upgrade && sudo apt install keepalived apache2 -y
 
-# Server 1
+##################### Server 1 ####################
 
 sudo su
 cd /var/www/
@@ -124,8 +127,7 @@ cd html # Borrar lo que haya en el directorio y crear el archivo index.html
 echo "Server 1" > index.html
 cat index.html
 curl 10.0.0.50
-
-vi /etc/keepalived/keepalived.conf
+sudo vi /etc/keepalived/keepalived.conf
 
 # Configuracion NODE 1
 vrrp_instance VI_1 {
@@ -147,7 +149,10 @@ virtual_ipaddress {
  }
 }
 
-# Server 2
+# ACTIVAR EL SERVICIO
+sudo systemctl start keepalived.service && sudo systemctl status keepalived.service
+
+#################### Server 2 ####################
 
 sudo su
 cd /var/www/
@@ -157,7 +162,7 @@ echo "Server 1" > index.html
 cat index.html
 curl 10.0.0.51
 
-vi /etc/keepalived/keepalived.conf
+sudo vi /etc/keepalived/keepalived.conf
 # Configuracion del NODE2
 
 vrrp_instance VI_1 {
@@ -168,7 +173,7 @@ vrrp_instance VI_1 {
 	advert_int 1
 	unicast_src_ip 10.0.0.51 # La ip del NODE2
 	unicast_peer {
-		10.0.0.50 # La ip del NODE3
+		10.0.0.50 # La ip del NODE1
 	 }
 authentication {
 	auth_type PASS
@@ -178,3 +183,12 @@ virtual_ipaddress {
 	10.0.0.210/24
  }
 }
+
+# ACTIVAR EL SERVICIO
+sudo systemctl start keepalived.service && sudo systemctl status keepalived.service
+
+
+# COMPROBACION: 
+detener el servicion para pasar la ip flotante entre maquinas
+systemctl stop keepalived.service
+
